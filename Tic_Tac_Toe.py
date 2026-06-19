@@ -32,10 +32,10 @@ def available_moves(board):
 
 
 def winner(board): # returns the symbol of the winner
-    for a,b,c in WIN_LINES:
-        if board[a] == board[b] == board[c] and board[a] != EMPTY:
+    for a, b, c in WIN_LINES:
+        if board[a] != EMPTY and board[a] == board[b] == board[c]:
             return board[a]
-        return None
+    return None
 
 def is_full(board):
     if EMPTY not in board:
@@ -48,20 +48,71 @@ def player_move(board, symbol):
         slot = int(input(f"{symbol}'s turn - Enter slot:"))
         if slot < 0 or slot > 8:
             print("Please enter a number between 0-8.")
-            continue
         else:
-            if board[slot] == EMPTY:
+            if board[slot] != EMPTY:
                 print("That slot isn't free, try again.")
             else:
                 return slot
         
+def bot_move(board):
+    return random.choice(available_moves(board))
+
+def game_ended(board, current):
+    if winner(board):
+        print_board(board)
+        print(f"{current} wins!")
+        return True
+    elif is_full(board):
+        print_board(board)
+        print("Draw!")
+        return True
+
 
 def play(options):
     board = new_board()
     current = 'O' # O always starts.
+    gameContinue = True
 
-    if options[0]:
+    while gameContinue:
+        if options[0]: # Human Vs Human
+            print_board(board)
+            board[player_move(board, current)] = current
+
+            hasGameEnded = game_ended(board, current)
+            if hasGameEnded:
+                gameContinue = not hasGameEnded
+
+        elif options[1]: # Human Starting Against A Bot
+            print_board(board)
+            board[player_move(board, current)] = current
+            hasGameEnded = game_ended(board, current)
+            if hasGameEnded:
+                gameContinue = not hasGameEnded
+            current = 'X' if current == 'O' else 'O'
+            board[bot_move(board)] = current
+            hasGameEnded = game_ended(board, current)
+            if hasGameEnded:
+                gameContinue = not hasGameEnded
+        elif options[2]:
+            board[bot_move(board)] = current
+            hasGameEnded = game_ended(board, current)
+            if hasGameEnded:
+                return
+            current = 'X' if current == 'O' else 'O'
+            print_board(board)
+            board[player_move(board, current)] = current
+            hasGameEnded = game_ended(board, current)
+            if hasGameEnded:
+                gameContinue = not hasGameEnded
+
+            
+        current = 'X' if current == 'O' else 'O'
         
+            
+
+        
+            
+
 
     
 
@@ -79,3 +130,5 @@ def main():
             options = (0, 0, 1)
 
     play(options)
+
+main()
