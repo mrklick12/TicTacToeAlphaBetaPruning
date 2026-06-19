@@ -1,6 +1,8 @@
 import random
+import time
 
 EMPTY = ' '
+nodes = 0
 
 WIN_LINES = [
     (0, 1, 2), (3, 4, 5), (6, 7, 8),   # rows
@@ -30,6 +32,9 @@ def available_moves(board):
             moves.append(i)
     return moves
 
+def switch_turn(current):
+    current = 'X' if current == 'O' else 'O'
+    return current
 
 def winner(board): # returns the symbol of the winner
     for a, b, c in WIN_LINES:
@@ -54,7 +59,60 @@ def player_move(board, symbol):
             else:
                 return slot
         
-def bot_move(board):
+
+
+def explore(board, current):
+    global nodes
+    nodes += 1
+    win = winner(board)
+    if win == 'O':
+        return 1
+    elif win == 'X':
+        return -1
+    elif is_full(board):
+        return 0
+    
+    nxt = 'X' if current == 'O' else 'O'
+    scores = []
+    for move in available_moves(board):
+        child = board.copy()
+        child[move] = current
+        scores.append(explore(child, nxt))   # one number per legal move
+
+    if current == 'O':
+        return max(scores)
+    else:
+        return min(scores)
+    
+
+
+def bot_move(board, current):
+    global nodes
+    nodes = 0
+    start = time.perf_counter() 
+
+    nxt = 'X' if current == 'O' else 'O'
+    moves = available_moves(board)
+    scores = []
+    for move in moves:
+        copy = board.copy()
+        copy[move] = current
+        scores.append(explore(copy, nxt))     # opponent moves next
+
+    elapsed = time.perf_counter() - start
+    print(f"explored {nodes} positions in {elapsed:.4f}s")
+
+    if current == 'O':
+        best = max(scores)
+    else:
+        best = min(scores)
+    return moves[scores.index(best)]           # map back to the board square
+    
+    
+
+
+
+def random_bot_move(board):
     return random.choice(available_moves(board))
 
 def game_ended(board, current):
@@ -68,10 +126,19 @@ def game_ended(board, current):
         return True
 
 
+
 def play(options):
     board = new_board()
     current = 'O' # O always starts.
     gameContinue = True
+
+    if options[2]: # Computer Starts
+        board[bot_move(board, current)] = current
+        hasGameEnded = game_ended(board, current)
+        if hasGameEnded:
+            return
+        current = switch_turn(current)
+
 
     while gameContinue:
         if options[0]: # Human Vs Human
@@ -81,32 +148,20 @@ def play(options):
             hasGameEnded = game_ended(board, current)
             if hasGameEnded:
                 gameContinue = not hasGameEnded
-
-        elif options[1]: # Human Starting Against A Bot
+        else:
             print_board(board)
             board[player_move(board, current)] = current
-            hasGameEnded = game_ended(board, current)
-            if hasGameEnded:
-                gameContinue = not hasGameEnded
-            current = 'X' if current == 'O' else 'O'
-            board[bot_move(board)] = current
-            hasGameEnded = game_ended(board, current)
-            if hasGameEnded:
-                gameContinue = not hasGameEnded
-        elif options[2]:
-            board[bot_move(board)] = current
             hasGameEnded = game_ended(board, current)
             if hasGameEnded:
                 return
-            current = 'X' if current == 'O' else 'O'
-            print_board(board)
-            board[player_move(board, current)] = current
+            current = switch_turn(current)
+
+            board[bot_move(board, current)] = current
             hasGameEnded = game_ended(board, current)
             if hasGameEnded:
                 gameContinue = not hasGameEnded
-
-            
-        current = 'X' if current == 'O' else 'O'
+        
+        current = switch_turn(current)
         
             
 
