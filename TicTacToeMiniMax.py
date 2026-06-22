@@ -3,6 +3,7 @@ import time
 
 EMPTY = ' '
 nodes = 0
+inf = float('inf')
 
 WIN_LINES = [
     (0, 1, 2), (3, 4, 5), (6, 7, 8),   # rows
@@ -61,7 +62,7 @@ def player_move(board, symbol):
         
 
 
-def explore(board, current):
+def minimax(board, current):
     global nodes
     nodes += 1
     win = winner(board)
@@ -77,7 +78,42 @@ def explore(board, current):
     for move in available_moves(board):
         child = board.copy()
         child[move] = current
-        scores.append(explore(child, nxt))   # one number per legal move
+        scores.append(minimax(child, nxt))   # one number per legal move
+
+    if current == 'O':
+        return max(scores)
+    else:
+        return min(scores)
+    
+def alphabeta(board, current, alpha, beta):
+    global nodes
+    nodes += 1
+
+    win = winner(board)
+    if win == 'O':
+        return 1
+    elif win == 'X':
+        return -1
+    elif is_full(board):
+        return 0
+    
+    nxt = 'X' if current == 'O' else 'O'
+    scores = []
+
+    for move in available_moves(board):
+        child = board.copy()
+        child[move] = current
+        eval = alphabeta(child, nxt, alpha, beta)
+        if current == 'O':
+            alpha = max(alpha, eval)
+        else:
+            beta = min(beta, eval)
+        
+        scores.append(eval)   # one number per legal move
+
+        if beta <= alpha:
+            break
+        
 
     if current == 'O':
         return max(scores)
@@ -86,7 +122,8 @@ def explore(board, current):
     
 
 
-def bot_move(board, current):
+def bot_move(board, current, isMinimax):
+
     global nodes
     nodes = 0
     start = time.perf_counter() 
@@ -97,7 +134,10 @@ def bot_move(board, current):
     for move in moves:
         copy = board.copy()
         copy[move] = current
-        scores.append(explore(copy, nxt))     # opponent moves next
+        if isMinimax:
+            scores.append(minimax(copy, nxt))     
+        else:
+            scores.append(alphabeta(copy, nxt, -inf, inf))
 
     elapsed = time.perf_counter() - start
     print(f"explored {nodes} positions in {elapsed:.4f}s")
@@ -127,13 +167,23 @@ def game_ended(board, current):
 
 
 
-def play(options):
+def play(options, isMinimaxInt):
+
+    isMinimax = True
     board = new_board()
     current = 'O' # O always starts.
     gameContinue = True
 
+    if isMinimaxInt == -1:
+        isMinimax = False
+        
     if options[2]: # Computer Starts
-        board[bot_move(board, current)] = current
+
+        if isMinimaxInt != 0: # if the game isn't a random computer bot
+            board[bot_move(board, current, isMinimax)] = current
+        else:
+            board[random_bot_move(board)] = current
+
         hasGameEnded = game_ended(board, current)
         if hasGameEnded:
             return
@@ -156,7 +206,10 @@ def play(options):
                 return
             current = switch_turn(current)
 
-            board[bot_move(board, current)] = current
+            if isMinimaxInt != 0: # if the game isn't a random computer bot
+                board[bot_move(board, current, isMinimax)] = current
+            else:
+                board[random_bot_move(board)] = current
             hasGameEnded = game_ended(board, current)
             if hasGameEnded:
                 gameContinue = not hasGameEnded
@@ -173,10 +226,18 @@ def play(options):
 
 
 def main():
-    mode = input("1 - Human vs Human\n2 - Human vs Random Bot\nChoose: ")
+
+    isMinimaxInt = 0
+    mode = int(input("1 - Human vs Human" \
+    "\n2 - Human vs Minimax Bot" \
+    "\n3 - Human vs Alpha Beta Bot" \
+    "\n4 - Human vs Random Bot"
+    "\nChoose: "))
+    
     options = (1, 0, 0) 
     # (HumanVsHuman, HumanVsComputer - human starts, ComputerVsHuman - computer starts)
-    if mode == "2":
+
+    if mode > 1:
         human_starts = input("Do you want to start? y/n ").lower() != "n"
         # Human is O (first) if they start, otherwise human is X.
         if human_starts:
@@ -184,6 +245,12 @@ def main():
         else:
             options = (0, 0, 1)
 
-    play(options)
+    if mode == 2:
+        isMinimaxInt = 1
+    elif mode == 3:
+        isMinimaxInt = -1
+
+
+    play(options, isMinimaxInt)
 
 main()

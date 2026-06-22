@@ -4,6 +4,8 @@ import time
 EMPTY = ' '
 nodes = 0
 
+inf = float('inf')
+
 WIN_LINES = [
     (0, 1, 2), (3, 4, 5), (6, 7, 8),   # rows
     (0, 3, 6), (1, 4, 7), (2, 5, 8),   # columns
@@ -61,9 +63,10 @@ def player_move(board, symbol):
         
 
 
-def explore(board, current):
+def explore(board, current, alpha, beta):
     global nodes
     nodes += 1
+
     win = winner(board)
     if win == 'O':
         return 1
@@ -74,10 +77,21 @@ def explore(board, current):
     
     nxt = 'X' if current == 'O' else 'O'
     scores = []
+
     for move in available_moves(board):
         child = board.copy()
         child[move] = current
-        scores.append(explore(child, nxt))   # one number per legal move
+        eval = explore(child, nxt, alpha, beta)
+        if current == 'O':
+            alpha = max(alpha, eval)
+        else:
+            beta = min(beta, eval)
+        
+        scores.append(eval)   # one number per legal move
+
+        if beta <= alpha:
+            break
+        
 
     if current == 'O':
         return max(scores)
@@ -97,7 +111,7 @@ def bot_move(board, current):
     for move in moves:
         copy = board.copy()
         copy[move] = current
-        scores.append(explore(copy, nxt))     # opponent moves next
+        scores.append(explore(copy, nxt, -inf, inf))     # opponent moves next
 
     elapsed = time.perf_counter() - start
     print(f"explored {nodes} positions in {elapsed:.4f}s")
